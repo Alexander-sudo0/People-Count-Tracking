@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Analysis - InsightCount</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-3xl font-bold">Video Analysis</h1>
+            <a href="/" class="text-gray-400 hover:text-white">Back to Dashboard</a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Upload Section -->
+            <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg border border-gray-700">
+                <h2 class="text-lg font-semibold mb-4">Upload Video</h2>
+                <div class="space-y-3">
+                    <div id="uploadArea" class="border-2 border-dashed border-gray-600 rounded-lg p-6 text-center cursor-pointer hover:border-green-500 transition">
+                        <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto mb-2 text-gray-400"></i>
+                        <p class="text-sm text-gray-300">Click or drag video here</p>
+                        <p class="text-xs text-gray-500">MP4, AVI, MOV (max 500MB)</p>
+                        <input type="file" id="videoFile" accept="video/*" class="hidden">
+                    </div>
+                    <div id="fileName" class="text-xs text-gray-400"></div>
+                    <button id="analyzeBtn" onclick="analyzeVideo()" class="w-full bg-green-600 hover:bg-green-500 px-4 py-2 rounded disabled:opacity-50" disabled>
+                        Analyze
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div id="resultsSection" class="lg:col-span-2 hidden">
+                <div class="bg-gray-800 p-6 rounded-lg border border-gray-700">
+                    <h2 class="text-lg font-semibold mb-4">Analysis Results</h2>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-gray-700 p-4 rounded">
+                                <p class="text-sm text-gray-400">Total Frames</p>
+                                <p id="totalFrames" class="text-2xl font-bold">-</p>
+                            </div>
+                            <div class="bg-gray-700 p-4 rounded">
+                                <p class="text-sm text-gray-400">Unique Faces</p>
+                                <p id="uniqueCount" class="text-2xl font-bold">-</p>
+                            </div>
+                        </div>
+                        <div id="loadingMsg" class="text-center py-4">
+                            <div class="inline-block animate-spin">
+                                <i data-lucide="loader" class="w-6 h-6"></i>
+                            </div>
+                            <p class="text-sm text-gray-400 mt-2">Processing...</p>
+                        </div>
+                        <div id="facesGrid" class="grid grid-cols-2 md:grid-cols-3 gap-3"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Faces List -->
+        <div id="facesList" class="mt-6 hidden">
+            <h2 class="text-xl font-semibold mb-4">Identified Faces</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4" id="facesList"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        lucide.createIcons();
+        let selectedFile = null;
+
+        document.getElementById('uploadArea').addEventListener('click', () => {
+            document.getElementById('videoFile').click();
+        });
+
+        document.getElementById('uploadArea').addEventListener('dragover', (e) => {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.add('border-green-500', 'bg-gray-700');
+        });
+
+        document.getElementById('uploadArea').addEventListener('dragleave', () => {
+            document.getElementById('uploadArea').classList.remove('border-green-500', 'bg-gray-700');
+        });
+
+        document.getElementById('uploadArea').addEventListener('drop', (e) => {
+            e.preventDefault();
+            document.getElementById('uploadArea').classList.remove('border-green-500', 'bg-gray-700');
+            const files = e.dataTransfer.files;
+            if(files.length > 0) {
+                selectedFile = files[0];
+                document.getElementById('fileName').innerText = `Selected: ${selectedFile.name}`;
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        });
+
+        document.getElementById('videoFile').addEventListener('change', (e) => {
+            if(e.target.files.length > 0) {
+                selectedFile = e.target.files[0];
+                document.getElementById('fileName').innerText = `Selected: ${selectedFile.name}`;
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        });
+
+        async function analyzeVideo() {
+            if(!selectedFile) return;
+
+            document.getElementById('resultsSection').classList.remove('hidden');
+            document.getElementById('loadingMsg').classList.remove('hidden');
+            document.getElementById('facesGrid').innerHTML = '';
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const res = await fetch('/api/process_video', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                document.getElementById('loadingMsg').classList.add('hidden');
+
+                if(data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                document.getElementById('totalFrames').innerText = data.total_frames || 0;
+                document.getElementById('uniqueCount').innerText = data.unique_count || 0;
+
+                const grid = document.getElementById('facesGrid');
+                if(data.unique_faces && data.unique_faces.length > 0) {
+                    data.unique_faces.forEach(face => {
+                        const div = document.createElement('div');
+                        div.className = 'bg-gray-700 rounded-lg overflow-hidden hover:shadow-lg transition';
+                        div.innerHTML = `
+                            <img src="${face.image || '/static/placeholder.png'}" class="w-full h-24 object-cover">
+                            <div class="p-2">
+                                <p class="text-xs font-mono text-gray-300">${face.id}</p>
+                                <p class="text-sm font-semibold">Seen: ${face.count}x</p>
+                            </div>
+                        `;
+                        grid.appendChild(div);
+                    });
+                } else {
+                    grid.innerHTML = '<p class="col-span-full text-gray-400 text-center py-4">No faces detected</p>';
+                }
+            } catch(err) {
+                document.getElementById('loadingMsg').classList.add('hidden');
+                alert('Error: ' + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

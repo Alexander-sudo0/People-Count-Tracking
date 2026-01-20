@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - InsightCount</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white font-sans p-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">Settings</h1>
+        
+        <!-- Camera Selector -->
+        <div class="bg-gray-800 p-6 rounded border border-gray-700 mb-6">
+            <h2 class="text-xl font-semibold mb-4 text-gray-400">📹 Camera Selection</h2>
+            <p class="text-sm text-gray-300 mb-3">Select a camera to apply camera-specific operations (dedup, reset). Leave empty to apply to all cameras.</p>
+            <select id="cameraSelector" class="w-full bg-gray-700 text-white rounded px-3 py-2 mb-2">
+                <option value="">-- All Cameras --</option>
+            </select>
+            <p id="cameraStatus" class="text-xs text-gray-500 mt-2"></p>
+        </div>
+            <!-- Face Quality Settings -->
+            <div class="bg-gray-800 p-6 rounded border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 text-green-400">Face Quality</h2>
+                
+                <label class="block text-sm text-gray-300 mb-1">Minimum Face Quality (0-1)</label>
+                <div class="flex gap-2 mb-4">
+                    <input id="minQuality" type="number" step="0.01" min="0" max="1" class="flex-1 bg-gray-700 rounded px-3 py-2">
+                    <span id="qualityValue" class="text-gray-400 w-12">0.70</span>
+                </div>
+                <p class="text-xs text-gray-400 mb-3">Faces below this score are considered low-quality/blurry</p>
+                
+                <label class="block text-sm text-gray-300 mb-1">Blur Detection Threshold (0-1)</label>
+                <div class="flex gap-2 mb-4">
+                    <input id="blurThreshold" type="number" step="0.01" min="0" max="1" class="flex-1 bg-gray-700 rounded px-3 py-2">
+                    <span id="blurValue" class="text-gray-400 w-12">0.60</span>
+                </div>
+                <p class="text-xs text-gray-400">Faces below this are flagged as blurry</p>
+                
+                <button id="saveQualityBtn" class="w-full mt-4 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded">Save Quality Settings</button>
+                <div id="qualityStatus" class="text-sm mt-2 text-gray-400"></div>
+            </div>
+            
+            <!-- Matching Settings -->
+            <div class="bg-gray-800 p-6 rounded border border-gray-700">
+                <h2 class="text-xl font-semibold mb-4 text-blue-400">Matching & Dedup</h2>
+                
+                <label class="block text-sm text-gray-300 mb-1">Similarity Threshold (0-1)</label>
+                <div class="flex gap-2 mb-4">
+                    <input id="similarity" type="number" step="0.01" min="0" max="1" class="flex-1 bg-gray-700 rounded px-3 py-2">
+                    <span id="simValue" class="text-gray-400 w-12">0.75</span>
+                </div>
+                <p class="text-xs text-gray-400 mb-3">Threshold for matching faces (0.70-0.80 recommended)</p>
+                
+                <label class="block text-sm text-gray-300 mb-1">IoU Dedup Threshold (0-1)</label>
+                <div class="flex gap-2 mb-4">
+                    <input id="iou" type="number" step="0.01" min="0" max="1" class="flex-1 bg-gray-700 rounded px-3 py-2">
+                    <span id="iouValue" class="text-gray-400 w-12">0.40</span>
+                </div>
+                <p class="text-xs text-gray-400">Overlapping detections merged when IoU > this</p>
+                
+                <button id="saveDedupBtn" class="w-full mt-4 bg-purple-600 hover:bg-purple-500 px-4 py-2 rounded">Save Matching Settings</button>
+                <div id="dedupStatus" class="text-sm mt-2 text-gray-400"></div>
+            </div>
+        </div>
+        
+        <!-- Post-Processing Deduplication -->
+        <div class="bg-gray-800 p-6 rounded border border-gray-700 mt-6">
+            <h2 class="text-xl font-semibold mb-4 text-yellow-400">🔄 Post-Processing Deduplication</h2>
+            <p class="text-sm text-gray-300 mb-4">
+                Cluster and merge similar faces to remove duplicates from blur, low quality, and repeated detections.
+                Uses DBSCAN clustering to find similar embeddings.
+            </p>
+            
+            <p class="text-sm text-blue-300 mb-4">
+                <strong>Target:</strong> <span id="dedupTarget">All Cameras</span>
+            </p>
+            
+            <div class="flex gap-2 mb-4">
+                <button id="deduplicateBtn" class="flex-1 bg-green-600 hover:bg-green-500 px-4 py-2 rounded">Run Deduplication</button>
+            </div>
+            
+            <div id="dedupStats" class="bg-gray-700 p-4 rounded text-sm hidden">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><span class="text-gray-400">Unique Before:</span> <span id="statBefore" class="font-bold">-</span></div>
+                    <div><span class="text-gray-400">Unique After:</span> <span id="statAfter" class="font-bold text-green-400">-</span></div>
+                    <div><span class="text-gray-400">Duplicates Removed:</span> <span id="statRemoved" class="font-bold text-yellow-400">-</span></div>
+                    <div><span class="text-gray-400">Dedup Rate:</span> <span id="statRate" class="font-bold">-</span></div>
+                    <div><span class="text-gray-400">High Quality:</span> <span id="statHQ" class="font-bold">-</span></div>
+                    <div><span class="text-gray-400">Low Quality:</span> <span id="statLQ" class="font-bold">-</span></div>
+                </div>
+            </div>
+            <div id="dedupResult" class="text-sm mt-3"></div>
+        </div>
+        
+        <!-- Frequency Reset -->
+        <div class="bg-gray-800 p-6 rounded border border-gray-700 mt-6">
+            <h2 class="text-xl font-semibold mb-4 text-red-400">🔄 Reset Frequency</h2>
+            <p class="text-sm text-gray-300 mb-4">
+                Reset the people count and frequency data. This will clear all detection history.
+            </p>
+            
+            <p class="text-sm text-blue-300 mb-4">
+                <strong>Target:</strong> <span id="resetTarget">All Cameras</span>
+            </p>
+            
+            <div class="flex gap-2 mb-4">
+                <button id="resetFreqBtn" class="flex-1 bg-red-600 hover:bg-red-500 px-4 py-2 rounded">Reset Frequency</button>
+            </div>
+            <div id="resetFreqResult" class="text-sm mt-2"></div>
+        </div>
+        
+        <div class="mt-8">
+            <a href="/" class="text-sm text-gray-400 hover:text-white">← Back to Dashboard</a>
+        </div>
+    </div>
+
+    <script>
+        let selectedCamId = null;
+        
+        // Camera selector
+        const cameraSelector = document.getElementById('cameraSelector');
+        
+        cameraSelector.addEventListener('change', (e) => {
+            selectedCamId = e.target.value || null;
+            updateTargetDisplays();
+            localStorage.setItem('selectedSettingsCamId', selectedCamId || '');
+        });
+        
+        function updateTargetDisplays() {
+            const dedupTarget = document.getElementById('dedupTarget');
+            const resetTarget = document.getElementById('resetTarget');
+            
+            if (selectedCamId) {
+                const selectedName = cameraSelector.options[cameraSelector.selectedIndex].text;
+                dedupTarget.textContent = selectedName;
+                resetTarget.textContent = selectedName;
+            } else {
+                dedupTarget.textContent = 'All Cameras';
+                resetTarget.textContent = 'All Cameras';
+            }
+        }
+        
+        // Load cameras on page load
+        async function loadCameras() {
+            try {
+                const res = await fetch('/');
+                // Parse cameras from dashboard HTML or fetch from API
+                const camerasRes = await fetch('/api/cameras');
+                if (camerasRes.ok) {
+                    const data = await camerasRes.json();
+                    const cameras = data.cameras || [];
+                    
+                    // Add camera options
+                    cameras.forEach(cam => {
+                        const option = document.createElement('option');
+                        option.value = cam.id;
+                        option.textContent = cam.name || cam.id;
+                        cameraSelector.appendChild(option);
+                    });
+                    
+                    // Restore last selected camera
+                    const lastSelected = localStorage.getItem('selectedSettingsCamId');
+                    if (lastSelected && cameraSelector.querySelector(`option[value="${lastSelected}"]`)) {
+                        cameraSelector.value = lastSelected;
+                        selectedCamId = lastSelected;
+                    }
+                    
+                    updateTargetDisplays();
+                }
+            } catch (err) {
+                console.error('Failed to load cameras:', err);
+            }
+        }
+        
+        // Get current camera from URL or localStorage
+        function getCurrentCamId() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('cam_id') || localStorage.getItem('lastCamId');
+        }
+        
+        async function loadSettings(){
+            const res = await fetch('/api/settings');
+            const s = await res.json();
+            document.getElementById('similarity').value = s.SIMILARITY_THRESHOLD;
+            document.getElementById('simValue').textContent = s.SIMILARITY_THRESHOLD.toFixed(2);
+            document.getElementById('iou').value = s.IOU_DEDUP_THRESHOLD;
+            document.getElementById('iouValue').textContent = s.IOU_DEDUP_THRESHOLD.toFixed(2);
+            document.getElementById('minQuality').value = s.MIN_FACE_QUALITY;
+            document.getElementById('qualityValue').textContent = s.MIN_FACE_QUALITY.toFixed(2);
+            document.getElementById('blurThreshold').value = s.BLUR_DETECTION_THRESHOLD;
+            document.getElementById('blurValue').textContent = s.BLUR_DETECTION_THRESHOLD.toFixed(2);
+        }
+        
+        // Update live value display
+        document.getElementById('similarity').addEventListener('input', (e) => {
+            document.getElementById('simValue').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+        document.getElementById('iou').addEventListener('input', (e) => {
+            document.getElementById('iouValue').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+        document.getElementById('minQuality').addEventListener('input', (e) => {
+            document.getElementById('qualityValue').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+        document.getElementById('blurThreshold').addEventListener('input', (e) => {
+            document.getElementById('blurValue').textContent = parseFloat(e.target.value).toFixed(2);
+        });
+        
+        document.getElementById('saveQualityBtn').addEventListener('click', async () => {
+            const minQuality = parseFloat(document.getElementById('minQuality').value);
+            const blurThreshold = parseFloat(document.getElementById('blurThreshold').value);
+            
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `min_face_quality=${minQuality}&blur_threshold=${blurThreshold}`
+                });
+                if(res.ok) {
+                    document.getElementById('qualityStatus').textContent = '✓ Quality settings saved';
+                    setTimeout(() => document.getElementById('qualityStatus').textContent = '', 3000);
+                }
+            } catch(err) {
+                document.getElementById('qualityStatus').textContent = '✗ Error: ' + err;
+            }
+        });
+        
+        document.getElementById('saveDedupBtn').addEventListener('click', async () => {
+            const similarity = parseFloat(document.getElementById('similarity').value);
+            const iou = parseFloat(document.getElementById('iou').value);
+            
+            try {
+                const res = await fetch('/api/settings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: `similarity_threshold=${similarity}`
+                });
+                if(res.ok) {
+                    document.getElementById('dedupStatus').textContent = '✓ Matching settings saved';
+                    setTimeout(() => document.getElementById('dedupStatus').textContent = '', 3000);
+                }
+            } catch(err) {
+                document.getElementById('dedupStatus').textContent = '✗ Error: ' + err;
+            }
+        });
+        
+        // Fixed: wrap in arrow function to pass null instead of event object
+        document.getElementById('deduplicateBtn').addEventListener('click', () => runDeduplication(selectedCamId));
+        
+        async function runDeduplication(camId = null) {
+            try {
+                document.getElementById('deduplicateBtn').disabled = true;
+                document.getElementById('dedupResult').textContent = 'Running deduplication...';
+                
+                let url = '/api/deduplicate';
+                if(camId) url += `?cam_id=${camId}`;
+                
+                const res = await fetch(url, { method: 'POST' });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    const stats = data.statistics;
+                    document.getElementById('statBefore').textContent = stats.unique_before;
+                    document.getElementById('statAfter').textContent = stats.unique_after;
+                    document.getElementById('statRemoved').textContent = stats.duplicates_removed;
+                    document.getElementById('statRate').textContent = stats.deduplication_rate;
+                    document.getElementById('statHQ').textContent = stats.high_quality_faces;
+                    document.getElementById('statLQ').textContent = stats.low_quality_faces;
+                    document.getElementById('dedupStats').classList.remove('hidden');
+                    
+                    const savings = stats.total_count_before - stats.total_count_after;
+                    document.getElementById('dedupResult').innerHTML = 
+                        `<span class="text-green-400">✓ Deduplication complete!</span><br/>` +
+                        `Total count adjusted: ${stats.total_count_before} → ${stats.total_count_after} (saved ${savings} counts)`;
+                } else {
+                    document.getElementById('dedupResult').textContent = '✗ Error: ' + (data.error || 'Unknown error');
+                }
+            } catch(err) {
+                document.getElementById('dedupResult').textContent = '✗ Error: ' + err;
+            } finally {
+                document.getElementById('deduplicateBtn').disabled = false;
+            }
+        }
+        
+        // Reset Frequency handlers
+        document.getElementById('resetFreqBtn').addEventListener('click', () => resetFrequency(selectedCamId));
+        
+        async function resetFrequency(camId = null) {
+            if(!confirm('Are you sure you want to reset the frequency count? This cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                document.getElementById('resetFreqBtn').disabled = true;
+                document.getElementById('resetFreqResult').textContent = 'Resetting...';
+                
+                let url = '/api/reset_frequency';
+                if(camId) url += `?cam_id=${camId}`;
+                
+                const res = await fetch(url, { method: 'POST' });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    document.getElementById('resetFreqResult').innerHTML = 
+                        `<span class="text-green-400">✓ Frequency reset complete!</span><br/>` +
+                        `Cameras affected: ${data.cameras_reset}`;
+                } else {
+                    document.getElementById('resetFreqResult').textContent = '✗ Error: ' + (data.error || 'Unknown error');
+                }
+            } catch(err) {
+                document.getElementById('resetFreqResult').textContent = '✗ Error: ' + err;
+            } finally {
+                document.getElementById('resetFreqBtn').disabled = false;
+            }
+        }
+        
+        loadCameras();
+        loadSettings();
+    </script>
+</body>
+</html>

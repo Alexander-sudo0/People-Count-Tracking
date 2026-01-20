@@ -1,0 +1,15 @@
+{
+  "name": "optiexacta",
+  "version": "1.0.0",
+  "description": "OptiExacta - AI-Powered People Analytics Platform",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "python web_app.py",
+    "build": "cd frontend && npm run build",
+    "install:frontend": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

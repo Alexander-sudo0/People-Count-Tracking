@@ -1,0 +1,47 @@
+{
+  "b298bf05": {
+    "id": "b298bf05",
+    "name": "street",
+    "source": "rtsp://admin:Veer@9787@192.168.0.190:554/Streaming/Channels/101/",
+    "fps": 15,
+    "time_window_seconds": 900,
+    "counting_enabled": true,
+    "line_crossing_enabled": false,
+    "line_position": 0.5,
+    "roi_points": [],
+    "rot_points": [],
+    "created_at": "2026-01-20T11:27:03.208006",
+    "updated_at": "2026-01-20T11:27:03.208017"
+  },
+  "ef982af2": {
+    "id": "ef982af2",
+    "name": "mob",
+    "source": "rtsp://192.168.0.159:8555/live",
+    "fps": 15,
+    "time_window_seconds": 86400,
+    "counting_enabled": true,
+    "line_crossing_enabled": false,
+    "line_position": 0.5,
+    "roi_points": [
+      {
+        "x": 0.5148063781321185,
+        "y": 0.6175651733738294
+      },
+      {
+        "x": 0.7437357630979499,
+        "y": 0.6175651733738294
+      },
+      {
+        "x": 0.7437357630979499,
+        "y": 0.9860794735509998
+      },
+      {
+        "x": 0.5148063781321185,
+        "y": 0.9860794735509998
+      }
+    ],
+    "rot_points": [],
+    "created_at": "2026-01-20T12:39:49.610181",
+    "updated_at": "2026-01-20T12:39:49.610191"
+  }
+}

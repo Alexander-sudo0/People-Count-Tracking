@@ -1,0 +1,10 @@
+insightface
+onnxruntime-gpu  # Will fallback or fail if no GPU, but needed for GPU support
+onnxruntime      # Standard CPU runtime
+opencv-python
+numpy
+fastapi
+uvicorn
+jinja2
+python-multipart
+ultralytics     # YOLOv8 for person detection (fallback when face is not visible)
