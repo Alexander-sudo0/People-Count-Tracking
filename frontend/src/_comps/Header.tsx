@@ -12,10 +12,10 @@ export default function Header({ currentPage = 'home' }: HeaderProps) {
       <div className="container mx-auto px-6 py-4 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">O</span>
+            <span className="text-white font-bold text-xl">D</span>
           </div>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            OptiExacta
+            Deltin
           </h1>
         </Link>
         <nav className="flex gap-4">
